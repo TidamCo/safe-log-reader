@@ -425,7 +425,7 @@ describe('reader', function () {
             fs.appendFile(filePath, '\n' + data.join('\n'), function (err) {
               if (err) return done(err);
               var readLines = 0;
-              reader.createReader(filePath, readerOpts)
+              var r = reader.createReader(filePath, readerOpts)
                 .on('read', function (data) {
                   readLines++;
                   // console.log(data);
@@ -433,7 +433,7 @@ describe('reader', function () {
                 .on('drain', function (cb) {
                   cb();
                 })
-                .on('end', function (cb) {
+                .on('end', function () {
                   assert.equal(readLines, 10);
                   done();
                 });
@@ -454,7 +454,7 @@ describe('reader', function () {
       for (var i = 0; i < 10; i++) {
         data.push('Line number ' + i);
       }
-      var filePath = path.join(dataDir, 'previous.log');
+      var filePath = path.join(dataDir, 'bytes.log');
       fs.writeFile(filePath, data.join('\n'), function (err) {
         if (err) return done(err);
         fs.stat(filePath, function (err, stat) {
@@ -464,7 +464,7 @@ describe('reader', function () {
             fs.appendFile(filePath, '\n' + data.join('\n'), function (err) {
               if (err) return done(err);
               var readLines = 0;
-              var instance = reader.createReader(filePath, readerOpts)
+              var r = reader.createReader(filePath, readerOpts)
                 .on('read', function (data) {
                   readLines++;
                   // console.log(data);
@@ -477,7 +477,8 @@ describe('reader', function () {
                   done();
                 });
               // required otherwise bytes wont be used
-              instance.sawEndOfFile = true;
+              r.canUseBookmarkBytes = true;
+              r.linesAtEndOfFile = 10;
             });
           });
         });
@@ -490,7 +491,7 @@ describe('reader', function () {
 
     it('reads lines appended to empty file with empty bookmark', function (done) {
 
-      var emptyLog = path.join(dataDir, 'empty.log');
+      var emptyLog = path.join(dataDir, 'empty_nobm.log');
       var appendDone = false;
       var readLines = 0;
 
@@ -506,7 +507,7 @@ describe('reader', function () {
           if (err) return done(err);
 
           fs.unlink(path.join(readerOpts.bookmark.dir, stat.ino.toString()), function () {
-            reader.createReader(emptyLog, readerOpts)
+            var r = reader.createReader(emptyLog, readerOpts)
               .on('read', function (data, lineCount) {
                 // console.log(lineCount + '. ' + data);
                 if (appendDone && ++readLines == 2) tryDone();
@@ -539,7 +540,7 @@ describe('reader', function () {
       var Bookmark = require('../lib/bookmark');
       var bookmark = new Bookmark(readerOpts.bookmark.dir);
 
-      var emptyLog = path.join(dataDir, 'empty.log');
+      var emptyLog = path.join(dataDir, 'empty_oldbm.log');
       var appendDone = false;
       var readLines = 0;
 
@@ -555,7 +556,7 @@ describe('reader', function () {
           if (err) return done(err);
 
           bookmark.save({ file: emptyLog, lines: 12087, bytes: 4242424242 }, function (err) {
-            reader.createReader(emptyLog, readerOpts)
+            var r = reader.createReader(emptyLog, readerOpts)
               .on('read', function (data, lineCount) {
                 // console.log(lineCount + '. ' + data);
                 if (appendDone && ++readLines == 2) tryDone();

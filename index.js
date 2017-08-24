@@ -20,6 +20,7 @@ function Reader (fileOrPath, options) {
   this.filePath     = path.resolve(fileOrPath);
   this.isArchive    = false;
   this.sawEndOfFile = false;
+  this.canUseBookmarkBytes = false;
   this.startBytes   = 0;
   this.watchDelay   = process.env.NODE_ENV === 'test' ? 100 : 2000;
 
@@ -70,6 +71,7 @@ Reader.prototype.endStream = function () {
     return;
   }
   slr.sawEndOfFile = true;
+  slr.canUseBookmarkBytes = true;
   slr.linesAtEndOfFile = slr.lines.position;
 
   var notifyAndWatch = function () {
@@ -85,6 +87,8 @@ Reader.prototype.endStream = function () {
 
 Reader.prototype.readLine = function () {
   var slr = this;
+
+  slr.canUseBookmarkBytes = false;
 
   if (slr.alreadyRead()) return;
   if (slr.batchIsFull()) return;
@@ -204,21 +208,24 @@ Reader.prototype.createStream = function () {
       // the only time byte position is safe is when we've read to EOF.
       // Otherwise, the byte position contains buffered data that hasn't
       // been emitted as lines.
+      // This is now saved in a separate variable
 
       // the alternative to 'start' here, is splitting the entire file
       // into lines (again) and counting lines. Avoid if possible.
-      if (slr.sawEndOfFile && mark.size) {
+      if (slr.canUseBookmarkBytes && mark.size) {
         if (slr.linesAtEndOfFile !== mark.lines) {
           logger.error('lines@EOF: ' + slr.linesAtEndOfFile);
           logger.error('mark.lines: ' + mark.lines);
         }
         logger.info('\tbytes.start: ' + mark.size);
         fileOpts.start = mark.size;
-        slr.sawEndOfFile = false;
         slr.lines.position = mark.lines;
         slr.bytesOffset = mark.size;
       }
     }
+
+    // we need to start fresh
+    slr.sawEndOfFile = false;
 
     logger.debug('opening for read: ' + slr.filePath);
     fs.createReadStream(slr.filePath, fileOpts).pipe(slr.liner);

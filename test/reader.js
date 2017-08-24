@@ -484,4 +484,104 @@ describe('reader', function () {
       });
     });
   });
+
+  context('reads lines appended to empty file', function () {
+    this.timeout(3000);
+
+    it('reads lines appended to empty file with empty bookmark', function (done) {
+
+      var emptyLog = path.join(dataDir, 'empty.log');
+      var appendDone = false;
+      var readLines = 0;
+
+      var tryDone = function () {
+        if (appendDone) return done();
+        setTimeout(function () {
+          tryDone();
+        }, 10);
+      };
+
+      newFile(emptyLog, '', function () {
+        fs.stat(emptyLog, function (err, stat) {
+          if (err) return done(err);
+
+          fs.unlink(path.join(readerOpts.bookmark.dir, stat.ino.toString()), function () {
+            reader.createReader(emptyLog, readerOpts)
+              .on('read', function (data, lineCount) {
+                // console.log(lineCount + '. ' + data);
+                if (appendDone && ++readLines == 2) tryDone();
+              })
+              .on('drain', function(next){
+                next();
+              })
+              .on('end', function () {
+                if (appendDone === false) {
+                  child.fork(path.join('test', 'helpers', 'fileAppend.js'), {
+                    env: {
+                      FILE_PATH: emptyLog,
+                      LOG_LINE: logLine + '\n' + logLine + '\n',
+                    }
+                  })
+                  .on('message', function (msg) {
+                    // console.log(msg);
+                    appendDone = true;
+                  });
+                }
+                // console.log('end');
+              });
+          });
+        });
+      });
+    });
+
+    it('reads lines appended to empty file with old bookmark', function (done) {
+
+      var Bookmark = require('../lib/bookmark');
+      var bookmark = new Bookmark(readerOpts.bookmark.dir);
+
+      var emptyLog = path.join(dataDir, 'empty.log');
+      var appendDone = false;
+      var readLines = 0;
+
+      var tryDone = function () {
+        if (appendDone) return done();
+        setTimeout(function () {
+          tryDone();
+        }, 10);
+      };
+
+      newFile(emptyLog, '', function () {
+        fs.stat(emptyLog, function (err, stat) {
+          if (err) return done(err);
+
+          bookmark.save({ file: emptyLog, lines: 12087, bytes: 4242424242 }, function (err) {
+            reader.createReader(emptyLog, readerOpts)
+              .on('read', function (data, lineCount) {
+                // console.log(lineCount + '. ' + data);
+                if (appendDone && ++readLines == 2) tryDone();
+              })
+              .on('drain', function(next){
+                next();
+              })
+              .on('end', function () {
+                if (appendDone === false) {
+                  child.fork(path.join('test', 'helpers', 'fileAppend.js'), {
+                    env: {
+                      FILE_PATH: emptyLog,
+                      LOG_LINE: logLine + '\n' + logLine + '\n',
+                    }
+                  })
+                  .on('message', function (msg) {
+                    // console.log(msg);
+                    appendDone = true;
+                  });
+                }
+                // console.log('end');
+              });
+          });
+        });
+      });
+    });
+  });
+
 });

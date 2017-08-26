@@ -194,12 +194,13 @@ Reader.prototype.createStream = function () {
       return;
     }
 
-    if (mark && mark.lines && !slr.noBookmark) {
-      logger.debug('\tlines.start: ' + mark.lines);
-      slr.lines.start = mark.lines;
+    if (/\.gz$/.test(slr.filePath)) {
+      if (mark && mark.lines && !slr.noBookmark) {
+        logger.debug('\tlines.start: ' + mark.lines);
+        slr.lines.start = mark.lines;
+      }
+      return slr.createStreamGzip();
     }
-
-    if (/\.gz$/.test(slr.filePath)) return slr.createStreamGzip();
     // if (/\.bz2$/.test(slr.filePath)) return slr.createStreamBz2();
 
     // options used only by plain text log files
@@ -221,10 +222,14 @@ Reader.prototype.createStream = function () {
           logger.error('lines@EOF: ' + slr.linesAtEndOfFile);
           logger.error('mark.lines: ' + mark.lines);
         }
-        logger.info('\tbytes.start: ' + mark.size);
+        logger.info('\tbytes.start: ' + mark.size + ' (lines: ' + mark.lines + ')');
         fileOpts.start = mark.size;
         slr.lines.position = mark.lines;
         slr.bytesOffset = mark.size;
+      }
+      else if (mark.lines) {
+        logger.debug('\tlines.start: ' + mark.lines);
+        slr.lines.start = mark.lines;
       }
     }
 

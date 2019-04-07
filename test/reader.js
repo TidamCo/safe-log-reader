@@ -425,7 +425,7 @@ describe('reader', function () {
             fs.appendFile(filePath, '\n' + data.join('\n'), function (err) {
               if (err) return done(err);
               var readLines = 0;
-              var r = reader.createReader(filePath, readerOpts)
+              reader.createReader(filePath, readerOpts)
                 .on('read', function (data) {
                   readLines++;
                   // console.log(data);
@@ -507,7 +507,7 @@ describe('reader', function () {
           if (err) return done(err);
 
           fs.unlink(path.join(readerOpts.bookmark.dir, stat.ino.toString()), function () {
-            var r = reader.createReader(emptyLog, readerOpts)
+            reader.createReader(emptyLog, readerOpts)
               .on('read', function (data, lineCount) {
                 // console.log(lineCount + '. ' + data);
                 if (appendDone && ++readLines == 2) tryDone();
@@ -556,7 +556,7 @@ describe('reader', function () {
           if (err) return done(err);
 
           bookmark.save({ file: emptyLog, lines: 12087, bytes: 4242424242 }, function (err) {
-            var r = reader.createReader(emptyLog, readerOpts)
+            reader.createReader(emptyLog, readerOpts)
               .on('read', function (data, lineCount) {
                 // console.log(lineCount + '. ' + data);
                 if (appendDone && ++readLines == 2) tryDone();

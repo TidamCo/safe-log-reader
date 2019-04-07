@@ -584,5 +584,4 @@ describe('reader', function () {
       });
     });
   });
-
 });
